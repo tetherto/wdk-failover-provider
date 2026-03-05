@@ -1,5 +1,5 @@
 /**
- * @template {{}} T Because limitation of jsdoc, we use `T extends {}` instead of `T extends object`.
+ * @template {{}} T
  */
 export default class FailoverProvider<T extends {}> {
     /**
@@ -78,7 +78,7 @@ export type FailoverProviderConfig = {
      */
     retries?: number;
     /**
-     * - Define errors that the failover provider should retry. Default: `(error: Error) => error instanceof Error`.
+     * - Define errors that the failover provider should retry. By default, it will retry on any errors.
      */
     shouldRetryOn?: (error: Error) => boolean;
 };

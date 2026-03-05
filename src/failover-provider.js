@@ -16,7 +16,7 @@
 /**
  * @typedef {Object} FailoverProviderConfig
  * @property {number} [retries] - The number of additional retry attempts after the initial call fails. Total attempts = `1 + retries`. For example, `retries: 3` with 4 providers will try each provider once before throwing. If `retries` exceeds the number of providers, the failover will loop back and retry already-failed providers in round-robin order. Default: 3.
- * @property {(error: Error) => boolean} [shouldRetryOn] - Define errors that the failover provider should retry. Default: `(error: Error) => error instanceof Error`.
+ * @property {(error: Error) => boolean} [shouldRetryOn] - Define errors that the failover provider should retry. By default, it will retry on any errors.
  */
 
 /**
@@ -45,7 +45,7 @@ function uid (len = 12) {
 }
 
 /**
- * @template {{}} T Because limitation of jsdoc, we use `T extends {}` instead of `T extends object`.
+ * @template {{}} T
  */
 export default class FailoverProvider {
   /**

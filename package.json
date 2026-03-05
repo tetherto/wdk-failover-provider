@@ -7,28 +7,15 @@
     "wallet",
     "failover"
   ],
-  "homepage": "https://github.com/tetherto/wdk-failover-provider#readme",
-  "bugs": {
-    "url": "https://github.com/tetherto/wdk-failover-provider/issues"
-  },
+  "author": "Tether",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tetherto/wdk-failover-provider.git"
   },
-  "license": "Apache-2.0",
-  "author": "Tether",
-  "type": "module",
   "main": "index.js",
+  "type": "module",
   "types": "./types",
-  "exports": {
-    ".": {
-      "types": "./types/index.d.ts",
-      "default": "./index.js"
-    },
-    "./package": {
-      "default": "./package.json"
-    }
-  },
   "scripts": {
     "build:types": "tsc",
     "lint": "standard",
@@ -44,6 +31,15 @@
     "jest": "^30.2.0",
     "standard": "^17.1.2",
     "typescript": "^5.9.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./index.js"
+    },
+    "./package": {
+      "default": "./package.json"
+    }
   },
   "publishConfig": {
     "access": "public",
