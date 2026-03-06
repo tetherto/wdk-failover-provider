@@ -68,7 +68,7 @@ export default class FailoverProvider<T extends {}> {
      * @param {string | symbol} p The method/property name.
      * @param {unknown} receiver The JS Proxy.
      * @param {number} retries The number of retries.
-     * @returns {(string extends keyof T ? T[keyof T & string] : any) | (symbol extends keyof T ? T[keyof T & symbol] : any) | ((...args: any[]) => any | Promise<any>)}
+     * @returns {any}
      */
     private _proxy;
 }

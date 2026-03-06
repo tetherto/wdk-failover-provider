@@ -77,7 +77,7 @@ describe('FailoverProvider', () => {
 
   test('should access the public property', () => {
     /**
-     * @type {FailoverProvider<Animal>}
+     * @type {Animal}
      */
     const animal = new FailoverProvider().addProvider(new Cat()).addProvider(new Dog()).initialize()
 
@@ -86,7 +86,7 @@ describe('FailoverProvider', () => {
 
   test('should access the getter', () => {
     /**
-     * @type {FailoverProvider<Animal>}
+     * @type {Animal}
      */
     const animal = new FailoverProvider().addProvider(new Cat()).addProvider(new Dog()).initialize()
 
@@ -95,7 +95,7 @@ describe('FailoverProvider', () => {
 
   test('should retry on the failed getter', () => {
     /**
-     * @type {FailoverProvider<Animal>}
+     * @type {Animal}
      */
     const animal = new FailoverProvider()
       .addProvider(new Cockroach())
@@ -108,7 +108,7 @@ describe('FailoverProvider', () => {
   describe('sync providers', () => {
     test('should accept polymorphism', async () => {
       /**
-       * @type {FailoverProvider<Animal>}
+       * @type {Animal}
        */
       const animal = new FailoverProvider()
         .addProvider(new Cat())
@@ -121,7 +121,7 @@ describe('FailoverProvider', () => {
 
     test('should switch provider', async () => {
       /**
-       * @type {FailoverProvider<Animal>}
+       * @type {Animal}
        */
       const animal = new FailoverProvider()
         .addProvider(new Cockroach())
@@ -135,7 +135,7 @@ describe('FailoverProvider', () => {
 
     test('should retry 1 times and fail', async () => {
       /**
-       * @type {FailoverProvider<Animal>}
+       * @type {Animal}
        */
       const animal = new FailoverProvider({ retries: 1 })
         .addProvider(new Cockroach())
@@ -152,7 +152,7 @@ describe('FailoverProvider', () => {
     describe('shouldRetryOn config', () => {
       test('should not retry on custom shouldRetryOn', async () => {
         /**
-         * @type {FailoverProvider<Animal>}
+         * @type {Animal}
          */
         const animal = new FailoverProvider({
           shouldRetryOn: (error) => {
@@ -174,7 +174,7 @@ describe('FailoverProvider', () => {
 
       test('should retry on the default shouldRetryOn', async () => {
         /**
-         * @type {FailoverProvider<Animal>}
+         * @type {Animal}
          */
         const animal = new FailoverProvider()
           .addProvider(new Cockroach())
@@ -191,7 +191,7 @@ describe('FailoverProvider', () => {
   describe('async providers', () => {
     test('should accept polymorphism', async () => {
       /**
-       * @type {FailoverProvider<Animal>}
+       * @type {Animal}
        */
       const animal = new FailoverProvider()
         .addProvider(new Cat())
@@ -204,7 +204,7 @@ describe('FailoverProvider', () => {
 
     test('should switch provider', async () => {
       /**
-       * @type {FailoverProvider<Animal>}
+       * @type {Animal}
        */
       const animal = new FailoverProvider()
         .addProvider(new Cockroach())
@@ -218,7 +218,7 @@ describe('FailoverProvider', () => {
 
     test('should retry 1 times and fail', async () => {
       /**
-       * @type {FailoverProvider<Animal>}
+       * @type {Animal}
        */
       const animal = new FailoverProvider({ retries: 1 })
         .addProvider(new Cockroach())
@@ -235,7 +235,7 @@ describe('FailoverProvider', () => {
     describe('shouldRetryOn config', () => {
       test('should not retry on custom shouldRetryOn', async () => {
         /**
-         * @type {FailoverProvider<Animal>}
+         * @type {Animal}
          */
         const animal = new FailoverProvider({
           shouldRetryOn: (error) => {
@@ -257,7 +257,7 @@ describe('FailoverProvider', () => {
 
       test('should retry on the default shouldRetryOn', async () => {
         /**
-         * @type {FailoverProvider<Animal>}
+         * @type {Animal}
          */
         const animal = new FailoverProvider()
           .addProvider(new Cockroach())

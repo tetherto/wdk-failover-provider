@@ -10,15 +10,10 @@ import { describe, expect, test } from '@jest/globals'
 
 const window = {
   ethereum: {
-    request:
-      /**
-       * @param {{method: string, params?: unknown[] | object}} params
-       * @returns
-       */
-      async ({ method }) => {
-        if (method === 'eth_chainId') return 1
-        throw new Error('Provider disconnected')
-      },
+    request: async ({ method }) => {
+      if (method === 'eth_chainId') return 1
+      throw new Error('Provider disconnected')
+    },
   },
 }
 
@@ -27,7 +22,7 @@ const RPC_PROVIDER = 'https://mainnet.infura.io/v3/06da09cda4da458c9aafe71cf464f
 describe('@tetherto/wdk-failover-provider', () => {
   test('should accept polymorphism', async () => {
     /**
-     * @type {FailoverProvider<AbstractProvider>}
+     * @type {AbstractProvider}
      */
     const provider = new FailoverProvider()
       .addProvider(new BrowserProvider(window.ethereum))
@@ -41,7 +36,7 @@ describe('@tetherto/wdk-failover-provider', () => {
 
   test('should switch provider', async () => {
     /**
-     * @type {FailoverProvider<AbstractProvider>}
+     * @type {AbstractProvider}
      */
     const provider = new FailoverProvider()
       .addProvider(new BrowserProvider(window.ethereum))
@@ -57,7 +52,7 @@ describe('@tetherto/wdk-failover-provider', () => {
   describe('shouldRetryOn config', () => {
     test('should not retry on insufficient balance error', async () => {
       /**
-       * @type {FailoverProvider<AbstractProvider>}
+       * @type {AbstractProvider}
        */
       const provider = new FailoverProvider({
         shouldRetryOn: (error) => {
@@ -83,7 +78,7 @@ describe('@tetherto/wdk-failover-provider', () => {
 
     test('should be failed on the default shouldRetryOn', async () => {
       /**
-       * @type {FailoverProvider<AbstractProvider>}
+       * @type {AbstractProvider}
        */
       const provider = new FailoverProvider({ retries: 1 })
         .addProvider(new JsonRpcProvider(RPC_PROVIDER, { name: 'mainnet', chainId: 1 }))
