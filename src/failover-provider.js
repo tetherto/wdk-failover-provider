@@ -33,7 +33,7 @@
  * @param {number} len - The desired UID length.
  * @returns {string} A UID string of the specified length.
  */
-function uid(len = 12) {
+function uid (len = 12) {
   if (len < 1 || len > 256) {
     throw new Error('The UID length must be between 1 and 256 characters.')
   }
@@ -53,7 +53,7 @@ export default class FailoverProvider {
    *
    * @param {FailoverProviderConfig} [config] - The failover factory config.
    */
-  constructor({ retries = 3, shouldRetryOn = (error) => error instanceof Error } = {}) {
+  constructor ({ retries = 3, shouldRetryOn = (error) => error instanceof Error } = {}) {
     /**
      * The number of retries before the failover provider throws an error.
      *
@@ -93,7 +93,7 @@ export default class FailoverProvider {
    * @param {T} provider The candidate provider.
    * @returns {FailoverProvider<T>} The instance of FailoverProvider.
    */
-  addProvider(provider) {
+  addProvider (provider) {
     this._providers.push({ id: uid(), provider, ms: 0 })
     return this
   }
@@ -104,10 +104,10 @@ export default class FailoverProvider {
    * @returns {T} The failover-enabled provider instance.
    * @throws {Error} When no providers have been added via addProvider().
    */
-  initialize() {
+  initialize () {
     if (!this._providers.length) {
       throw new Error(
-        'Cannot initialize an empty provider. Call `addProvider` before this function.',
+        'Cannot initialize an empty provider. Call `addProvider` before this function.'
       )
     }
 
@@ -116,7 +116,7 @@ export default class FailoverProvider {
     return new Proxy(provider, {
       get: (_, p, receiver) => {
         return this._proxy(this._providers[this._activeProvider], p, receiver)
-      },
+      }
     })
   }
 
@@ -129,7 +129,7 @@ export default class FailoverProvider {
    * @param {ProviderProxy<T>} failedProvider - The provider that triggered the switch.
    * @returns {ProviderProxy<T>} The selected provider.
    */
-  _switch(failedProvider) {
+  _switch (failedProvider) {
     // Only advance if the active provider is still the failed one
     if (failedProvider.id === this._providers[this._activeProvider].id) {
       this._activeProvider = (this._activeProvider + 1) % this._providers.length
@@ -147,7 +147,7 @@ export default class FailoverProvider {
    * @param {number} retries The number of retries.
    * @returns {any}
    */
-  _proxy(target, p, receiver, retries = this._retries) {
+  _proxy (target, p, receiver, retries = this._retries) {
     let prop
 
     // Immediately return if the property is not a function
