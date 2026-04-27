@@ -165,7 +165,7 @@ export default class FailoverProvider {
 
       // Retry on sync functions
       try {
-        re = prop.apply(target.provider, args)
+        re = prop.apply(receiver, args)
         if (!re?.then) return re
       } catch (er) {
         if (retries <= 0 || !this._shouldRetryOn(er)) throw er
