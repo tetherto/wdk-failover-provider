@@ -7,7 +7,7 @@ export default class FailoverProvider<T extends {}> {
      *
      * @param {FailoverProviderConfig} [config] - The failover factory config.
      */
-    constructor({ retries, shouldRetryOn }?: FailoverProviderConfig);
+    constructor({ retries, shouldRetryOn, bindToProxy }?: FailoverProviderConfig);
     /**
      * The number of retries before the failover provider throws an error.
      *
@@ -22,6 +22,14 @@ export default class FailoverProvider<T extends {}> {
      * @type {FailoverProviderConfig["shouldRetryOn"]}
      */
     private _shouldRetryOn;
+    /**
+     * When true, binds proxied method calls to the proxy itself instead of
+     * the underlying provider instance.
+     *
+     * @private
+     * @type {boolean}
+     */
+    private _bindToProxy;
     /**
      * The current active provider index.
      *
@@ -81,6 +89,10 @@ export type FailoverProviderConfig = {
      * - Define errors that the failover provider should retry. By default, it will retry on any errors.
      */
     shouldRetryOn?: (error: Error) => boolean;
+    /**
+     * - When true, proxied method calls use the proxy itself as `this`, so factory methods that capture `this` in closures (e.g. `TonClient.open()`) will route subsequent calls through the failover proxy. Must not be used with providers that rely on private class fields (`#field`). Default: false.
+     */
+    bindToProxy?: boolean;
 };
 /**
  * <T>

@@ -17,7 +17,7 @@ const window = {
   },
 }
 
-const RPC_PROVIDER = 'https://mainnet.infura.io/v3/06da09cda4da458c9aafe71cf464f5e5'
+const RPC_PROVIDER = 'https://eth-mainnet.public.blastapi.io'
 
 describe('@tetherto/wdk-failover-provider', () => {
   test('should accept polymorphism', async () => {

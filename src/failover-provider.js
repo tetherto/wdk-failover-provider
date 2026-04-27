@@ -17,6 +17,7 @@
  * @typedef {Object} FailoverProviderConfig
  * @property {number} [retries] - The number of additional retry attempts after the initial call fails. Total attempts = `1 + retries`. For example, `retries: 3` with 4 providers will try each provider once before throwing. If `retries` exceeds the number of providers, the failover will loop back and retry already-failed providers in round-robin order. Default: 3.
  * @property {(error: Error) => boolean} [shouldRetryOn] - Define errors that the failover provider should retry. By default, it will retry on any errors.
+ * @property {boolean} [bindToProxy] - When true, proxied method calls use the proxy itself as `this`, so factory methods that capture `this` in closures (e.g. `TonClient.open()`) will route subsequent calls through the failover proxy. Must not be used with providers that rely on private class fields (`#field`). Default: false.
  */
 
 /**
@@ -53,7 +54,7 @@ export default class FailoverProvider {
    *
    * @param {FailoverProviderConfig} [config] - The failover factory config.
    */
-  constructor ({ retries = 3, shouldRetryOn = (error) => error instanceof Error } = {}) {
+  constructor ({ retries = 3, shouldRetryOn = (error) => error instanceof Error, bindToProxy = false } = {}) {
     /**
      * The number of retries before the failover provider throws an error.
      *
@@ -69,6 +70,15 @@ export default class FailoverProvider {
      * @type {FailoverProviderConfig["shouldRetryOn"]}
      */
     this._shouldRetryOn = shouldRetryOn
+
+    /**
+     * When true, binds proxied method calls to the proxy itself instead of
+     * the underlying provider instance.
+     *
+     * @private
+     * @type {boolean}
+     */
+    this._bindToProxy = bindToProxy
 
     /**
      * The current active provider index.
@@ -160,12 +170,14 @@ export default class FailoverProvider {
       return this._proxy(provider, p, receiver, retries - 1)
     }
 
+    const thisArg = this._bindToProxy ? receiver : target.provider
+
     return (...args) => {
       let re
 
       // Retry on sync functions
       try {
-        re = prop.apply(target.provider, args)
+        re = prop.apply(thisArg, args)
         if (!re?.then) return re
       } catch (er) {
         if (retries <= 0 || !this._shouldRetryOn(er)) throw er
