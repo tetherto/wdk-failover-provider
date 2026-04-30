@@ -1,6 +1,6 @@
 {
   "name": "@tetherto/wdk-failover-provider",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "Zero-dependency failover mechanism for seamless fallback when providers break",
   "keywords": [
     "wdk",
@@ -20,8 +20,8 @@
     "build:types": "tsc",
     "lint": "standard",
     "lint:fix": "standard --fix",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
-    "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --testPathIgnorePatterns=tests/integration",
+    "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --testPathIgnorePatterns=tests/integration --coverage",
     "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest tests/integration",
     "test:integration:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest tests/integration --coverage"
   },
