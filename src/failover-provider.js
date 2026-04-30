@@ -111,11 +111,9 @@ export default class FailoverProvider {
       )
     }
 
-    const [{ provider }] = this._providers
-
-    return new Proxy(provider, {
-      get: (_, p, receiver) => {
-        return this._proxy(this._providers[this._activeProvider], p, receiver)
+    return new Proxy(this._providers[this._activeProvider].provider, {
+      get: (target, p) => {
+        return this._proxy(target, [p], this._providers[this._activeProvider])
       }
     })
   }
@@ -141,23 +139,41 @@ export default class FailoverProvider {
    * Proxy handler will keep retry until a response or throw the latest error.
    *
    * @private
-   * @param {ProviderProxy<T>} target The current active provider.
-   * @param {string | symbol} p The method/property name.
-   * @param {unknown} receiver The JS Proxy.
+   * @param {T} target The current active provider.
+   * @param {Array<string | symbol>} path The path to the target method/property name.
+   * @param {ProviderProxy<T>} provider The current active proxy.
    * @param {number} retries The number of retries.
    * @returns {any}
    */
-  _proxy (target, p, receiver, retries = this._retries) {
+  _proxy (target, path, provider, retries = this._retries) {
     let prop
+
+    const retry = (er, args = []) => {
+      if (retries <= 0 || !this._shouldRetryOn(er)) throw er
+      const nextProvider = this._switch(provider)
+
+      let nextProp = nextProvider.provider
+      let nextPath = []
+      for (const p of path) {
+        nextPath = [...nextPath, p]
+        nextProp = this._proxy(nextProp, nextPath, nextProvider, retries - 1)
+      }
+
+      if (typeof nextProp !== 'function') return nextProp
+      return nextProp(...args)
+    }
 
     // Immediately return if the property is not a function
     try {
-      prop = Reflect.get(target.provider, p, receiver)
+      prop = Reflect.get(target, path.at(-1))
+      if (typeof prop === 'object') return new Proxy(prop, {
+        get: (nextTarget, p) => {
+          return this._proxy(nextTarget, [...path, p], provider, retries)
+        }
+      })
       if (typeof prop !== 'function') return prop
     } catch (er) {
-      if (retries <= 0 || !this._shouldRetryOn(er)) throw er
-      const provider = this._switch(target)
-      return this._proxy(provider, p, receiver, retries - 1)
+      return retry(er)
     }
 
     return (...args) => {
@@ -165,25 +181,17 @@ export default class FailoverProvider {
 
       // Retry on sync functions
       try {
-        re = prop.apply(target.provider, args)
+        re = prop.apply(target, args)
         if (!re?.then) return re
       } catch (er) {
-        if (retries <= 0 || !this._shouldRetryOn(er)) throw er
-        const provider = this._switch(target)
-        const property = this._proxy(provider, p, receiver, retries - 1)
-        if (typeof property === 'function') return property(...args)
-        return property
+        return retry(er, args)
       }
 
       // Retry on async functions
       return re
         .then((re) => re)
         .catch((er) => {
-          if (retries <= 0 || !this._shouldRetryOn(er)) throw er
-          const provider = this._switch(target)
-          const property = this._proxy(provider, p, receiver, retries - 1)
-          if (typeof property === 'function') return property(...args)
-          return property
+          return retry(er, args)
         })
     }
   }
