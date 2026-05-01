@@ -64,9 +64,9 @@ export default class FailoverProvider<T extends {}> {
      * Proxy handler will keep retry until a response or throw the latest error.
      *
      * @private
-     * @param {ProviderProxy<T>} target The current active provider.
-     * @param {string | symbol} p The method/property name.
-     * @param {unknown} receiver The JS Proxy.
+     * @param {T} target The current active provider.
+     * @param {Array<string | symbol>} path The path to the target method/property name.
+     * @param {ProviderProxy<T>} provider The current active proxy.
      * @param {number} retries The number of retries.
      * @returns {any}
      */

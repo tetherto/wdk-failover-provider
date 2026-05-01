@@ -166,11 +166,13 @@ export default class FailoverProvider {
     // Immediately return if the property is not a function
     try {
       prop = Reflect.get(target, path.at(-1))
-      if (typeof prop === 'object') return new Proxy(prop, {
-        get: (nextTarget, p) => {
-          return this._proxy(nextTarget, [...path, p], provider, retries)
-        }
-      })
+      if (typeof prop === 'object') {
+        return new Proxy(prop, {
+          get: (nextTarget, p) => {
+            return this._proxy(nextTarget, [...path, p], provider, retries)
+          }
+        })
+      }
       if (typeof prop !== 'function') return prop
     } catch (er) {
       return retry(er)
