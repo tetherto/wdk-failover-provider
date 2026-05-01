@@ -2,272 +2,224 @@ import FailoverProvider from '@tetherto/wdk-failover-provider'
 
 import { describe, expect, test } from '@jest/globals'
 
-class Animal {
-  /**
-   * @constructor
-   * @param {string} name
-   * @param {string} [sound]
-   * @param {number} [pace]
-   */
-  constructor(name, sound = '...', pace = 300) {
-    /**
-     * @type {string}
-     */
-    this.name = name
-
-    /**
-     * @type {string}
-     */
-    this.sound = sound
-
-    /**
-     * @type {number}
-     */
-    this.pace = pace
+class Client {
+  constructor (name) {
+    this._name = name
   }
 
-  get NAME() {
+  get name () {
+    if (!this._name) throw new Error('Empty name.')
+    return this._name
+  }
+
+  getNameSync () {
     return this.name
   }
 
-  get SOUND() {
-    return this.sound
+  async getNameAsync () {
+    return new Promise((resolve, reject) => {
+      try {
+        return resolve(this.name)
+      } catch (er) {
+        return reject(er)
+      }
+    })
   }
 
-  syncSpeak = () => {
-    return this.sound
-  }
-
-  speak = async () => {
-    await new Promise((r) => setTimeout(r, this.pace))
-    return this.sound
+  get rpc () {
+    return {
+      getStatus: () => {
+        return `${this.name} is connected.`
+      },
+      getBlockhash: async () => {
+        return new Promise((resolve, reject) => {
+          try {
+            const name = this.name
+            const blockhash = Math.ceil(Math.random() * 1000)
+            return setTimeout(() => resolve({ [name]: blockhash }), 1)
+          } catch (er) {
+            return reject(er)
+          }
+        })
+      }
+    }
   }
 }
 
 describe('FailoverProvider', () => {
-  class Cat extends Animal {
-    constructor() {
-      super('Cat', 'meow')
-    }
-  }
+  const workingClient = new Client('working-client')
+  const failedClient = new Client()
 
-  class Dog extends Animal {
-    constructor() {
-      super('Dog', 'woof')
-    }
-  }
+  test('should accept polymorphism', async () => {
+    const client = new FailoverProvider()
+      .addProvider(workingClient)
+      .addProvider(failedClient)
+      .initialize()
 
-  class Cockroach extends Animal {
-    constructor() {
-      super('Cockroach')
-    }
-
-    get SOUND() {
-      throw new Error("A cockroach doesn't have sound.")
-    }
-
-    speak = async () => {
-      throw new Error("A cockroach doesn't speak, it flies.")
-    }
-
-    syncSpeak = () => {
-      throw new Error("A cockroach doesn't speak, it flies.")
-    }
-  }
+    expect(client instanceof Client).toBe(true)
+  })
 
   test('should access the public property', () => {
-    /**
-     * @type {Animal}
-     */
-    const animal = new FailoverProvider().addProvider(new Cat()).addProvider(new Dog()).initialize()
+    const client = new FailoverProvider()
+      .addProvider(workingClient)
+      .addProvider(failedClient)
+      .initialize()
 
-    expect(animal.name).toBe('Cat')
+    expect(client._name).toBe('working-client')
   })
 
   test('should access the getter', () => {
-    /**
-     * @type {Animal}
-     */
-    const animal = new FailoverProvider().addProvider(new Cat()).addProvider(new Dog()).initialize()
+    const client = new FailoverProvider()
+      .addProvider(workingClient)
+      .addProvider(failedClient)
+      .initialize()
 
-    expect(animal.NAME).toBe('Cat')
+    expect(client.name).toBe('working-client')
   })
 
   test('should retry on the failed getter', () => {
-    /**
-     * @type {Animal}
-     */
-    const animal = new FailoverProvider()
-      .addProvider(new Cockroach())
-      .addProvider(new Dog())
+    const client = new FailoverProvider()
+      .addProvider(failedClient)
+      .addProvider(workingClient)
       .initialize()
 
-    expect(animal.SOUND).toBe('woof')
+    expect(client.name).toBe('working-client')
   })
 
   describe('sync providers', () => {
-    test('should accept polymorphism', async () => {
-      /**
-       * @type {Animal}
-       */
-      const animal = new FailoverProvider()
-        .addProvider(new Cat())
-        .addProvider(new Dog())
-        .initialize()
-
-      const spoke = animal.syncSpeak()
-      expect(spoke).toBe('meow')
-    })
-
     test('should switch provider', async () => {
-      /**
-       * @type {Animal}
-       */
-      const animal = new FailoverProvider()
-        .addProvider(new Cockroach())
-        .addProvider(new Dog())
-        .addProvider(new Cat())
+      const client = new FailoverProvider()
+        .addProvider(failedClient)
+        .addProvider(workingClient)
         .initialize()
 
-      const spoke = animal.syncSpeak()
-      expect(spoke).toBe('woof')
+      const name = client.getNameSync()
+      expect(name).toBe('working-client')
     })
 
     test('should retry 1 times and fail', async () => {
-      /**
-       * @type {Animal}
-       */
-      const animal = new FailoverProvider({ retries: 1 })
-        .addProvider(new Cockroach())
-        .addProvider(new Cockroach())
-        .addProvider(new Cat())
-        .addProvider(new Dog())
+      const client = new FailoverProvider({ retries: 1 })
+        .addProvider(failedClient)
+        .addProvider(new Client())
+        .addProvider(workingClient)
         .initialize()
 
       expect(() => {
-        animal.syncSpeak()
-      }).toThrow("doesn't speak")
+        client.getNameSync()
+      }).toThrow('Empty name.')
     })
 
     describe('shouldRetryOn config', () => {
       test('should not retry on custom shouldRetryOn', async () => {
-        /**
-         * @type {Animal}
-         */
-        const animal = new FailoverProvider({
+        const client = new FailoverProvider({
           shouldRetryOn: (error) => {
             if (error instanceof Error) {
-              return !/cockroach/.test(error.message)
+              return !/Empty name/.test(error.message)
             }
             return true
-          },
+          }
         })
-          .addProvider(new Cockroach())
-          .addProvider(new Cat())
-          .addProvider(new Dog())
+          .addProvider(failedClient)
+          .addProvider(workingClient)
           .initialize()
 
         expect(() => {
-          animal.syncSpeak()
-        }).toThrow("doesn't speak")
+          client.getNameSync()
+        }).toThrow('Empty name.')
       })
 
       test('should retry on the default shouldRetryOn', async () => {
-        /**
-         * @type {Animal}
-         */
-        const animal = new FailoverProvider()
-          .addProvider(new Cockroach())
-          .addProvider(new Cat())
-          .addProvider(new Dog())
+        const client = new FailoverProvider()
+          .addProvider(failedClient)
+          .addProvider(workingClient)
           .initialize()
 
-        const spoken = animal.syncSpeak()
-        expect(spoken).toBe('meow')
+        const name = client.getNameSync()
+        expect(name).toBe('working-client')
       })
     })
   })
 
   describe('async providers', () => {
-    test('should accept polymorphism', async () => {
-      /**
-       * @type {Animal}
-       */
-      const animal = new FailoverProvider()
-        .addProvider(new Cat())
-        .addProvider(new Dog())
-        .initialize()
-
-      const spoke = await animal.speak()
-      expect(spoke).toBe('meow')
-    })
-
     test('should switch provider', async () => {
-      /**
-       * @type {Animal}
-       */
-      const animal = new FailoverProvider()
-        .addProvider(new Cockroach())
-        .addProvider(new Dog())
-        .addProvider(new Cat())
+      const client = new FailoverProvider()
+        .addProvider(failedClient)
+        .addProvider(workingClient)
         .initialize()
 
-      const spoke = await animal.speak()
-      expect(spoke).toBe('woof')
+      const name = await client.getNameAsync()
+      expect(name).toBe('working-client')
     })
 
     test('should retry 1 times and fail', async () => {
-      /**
-       * @type {Animal}
-       */
-      const animal = new FailoverProvider({ retries: 1 })
-        .addProvider(new Cockroach())
-        .addProvider(new Cockroach())
-        .addProvider(new Cat())
-        .addProvider(new Dog())
+      const client = new FailoverProvider({ retries: 1 })
+        .addProvider(failedClient)
+        .addProvider(new Client())
+        .addProvider(workingClient)
         .initialize()
 
       await expect(async () => {
-        await animal.speak()
-      }).rejects.toThrow("doesn't speak")
+        await client.getNameAsync()
+      }).rejects.toThrow('Empty name.')
     })
 
     describe('shouldRetryOn config', () => {
       test('should not retry on custom shouldRetryOn', async () => {
-        /**
-         * @type {Animal}
-         */
-        const animal = new FailoverProvider({
+        const client = new FailoverProvider({
           shouldRetryOn: (error) => {
             if (error instanceof Error) {
-              return !/cockroach/.test(error.message)
+              return !/Empty name/.test(error.message)
             }
             return true
-          },
+          }
         })
-          .addProvider(new Cockroach())
-          .addProvider(new Cat())
-          .addProvider(new Dog())
+          .addProvider(failedClient)
+          .addProvider(workingClient)
           .initialize()
 
         await expect(async () => {
-          await animal.speak()
-        }).rejects.toThrow("doesn't speak")
+          await client.getNameAsync()
+        }).rejects.toThrow('Empty name.')
       })
 
       test('should retry on the default shouldRetryOn', async () => {
-        /**
-         * @type {Animal}
-         */
-        const animal = new FailoverProvider()
-          .addProvider(new Cockroach())
-          .addProvider(new Cat())
-          .addProvider(new Dog())
+        const client = new FailoverProvider()
+          .addProvider(failedClient)
+          .addProvider(workingClient)
           .initialize()
 
-        const spoken = await animal.speak()
-        expect(spoken).toBe('meow')
+        const name = await client.getNameAsync()
+        expect(name).toBe('working-client')
       })
+    })
+  })
+
+  describe('nested object providers', () => {
+    test('should access the nested sync function', () => {
+      const client = new FailoverProvider()
+        .addProvider(workingClient)
+        .addProvider(failedClient)
+        .initialize()
+
+      expect(client.rpc.getStatus()).toBe('working-client is connected.')
+    })
+
+    test('should retry on the failed nested sync function', () => {
+      const client = new FailoverProvider()
+        .addProvider(failedClient)
+        .addProvider(workingClient)
+        .initialize()
+
+      expect(client.rpc.getStatus()).toBe('working-client is connected.')
+    })
+
+    test('should retry on the failed nested async function', async () => {
+      const client = new FailoverProvider()
+        .addProvider(failedClient)
+        .addProvider(workingClient)
+        .initialize()
+
+      await expect(client.rpc.getBlockhash()).resolves.toHaveProperty('working-client')
     })
   })
 })
