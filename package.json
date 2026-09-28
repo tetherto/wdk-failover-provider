@@ -1,7 +1,8 @@
 {
   "name": "@tetherto/wdk-failover-provider",
   "version": "1.0.0-beta.3",
-  "description": "Zero-dependency failover mechanism for seamless fallback when providers break",
+  "description": "Provider failover utilities for WDK (Wallet Development Kit) by Tether.",
+  "homepage": "https://docs.wdk.tether.io/tools/failover-provider/",
   "keywords": [
     "wdk",
     "wallet",
