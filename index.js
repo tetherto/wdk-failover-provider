@@ -14,5 +14,6 @@
 'use strict'
 
 /** @typedef {import('./src/failover-provider.js').FailoverProviderConfig} FailoverProviderConfig */
+/** @typedef {import('./src/failover-provider.js').RetryContext} RetryContext */
 
 export { default } from './src/failover-provider.js'

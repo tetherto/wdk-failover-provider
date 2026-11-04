@@ -1,6 +1,8 @@
 import FailoverProvider from '@tetherto/wdk-failover-provider'
 
-import { describe, expect, test } from '@jest/globals'
+import { afterEach, describe, expect, jest, test } from '@jest/globals'
+
+const shouldRetryOnMock = jest.fn()
 
 class Animal {
   /**
@@ -45,6 +47,10 @@ class Animal {
 }
 
 describe('FailoverProvider', () => {
+  afterEach(() => {
+    shouldRetryOnMock.mockReset()
+  })
+
   class Cat extends Animal {
     constructor() {
       super('Cat', 'meow')
@@ -103,6 +109,24 @@ describe('FailoverProvider', () => {
       .initialize()
 
     expect(animal.SOUND).toBe('woof')
+  })
+
+  test('should pass the property context to shouldRetryOn on the failed getter', () => {
+    shouldRetryOnMock.mockReturnValue(true)
+
+    /**
+     * @type {Animal}
+     */
+    const animal = new FailoverProvider({ shouldRetryOn: shouldRetryOnMock })
+      .addProvider(new Cockroach())
+      .addProvider(new Dog())
+      .initialize()
+
+    const sound = animal.SOUND
+
+    expect(shouldRetryOnMock).toHaveBeenCalledTimes(1)
+    expect(shouldRetryOnMock).toHaveBeenCalledWith(new Error("A cockroach doesn't have sound."), { method: 'SOUND' })
+    expect(sound).toBe('woof')
   })
 
   describe('sync providers', () => {
@@ -183,6 +207,24 @@ describe('FailoverProvider', () => {
           .initialize()
 
         const spoken = animal.syncSpeak()
+        expect(spoken).toBe('meow')
+      })
+
+      test('should pass the call context to shouldRetryOn', () => {
+        shouldRetryOnMock.mockReturnValue(true)
+
+        /**
+         * @type {Animal}
+         */
+        const animal = new FailoverProvider({ shouldRetryOn: shouldRetryOnMock })
+          .addProvider(new Cockroach())
+          .addProvider(new Cat())
+          .initialize()
+
+        const spoken = animal.syncSpeak('loudly')
+
+        expect(shouldRetryOnMock).toHaveBeenCalledTimes(1)
+        expect(shouldRetryOnMock).toHaveBeenCalledWith(new Error("A cockroach doesn't speak, it flies."), { method: 'syncSpeak', args: ['loudly'] })
         expect(spoken).toBe('meow')
       })
     })
@@ -267,6 +309,38 @@ describe('FailoverProvider', () => {
 
         const spoken = await animal.speak()
         expect(spoken).toBe('meow')
+      })
+
+      test('should pass the call context to shouldRetryOn', async () => {
+        shouldRetryOnMock.mockReturnValue(true)
+
+        /**
+         * @type {Animal}
+         */
+        const animal = new FailoverProvider({ shouldRetryOn: shouldRetryOnMock })
+          .addProvider(new Cockroach())
+          .addProvider(new Cat())
+          .initialize()
+
+        const spoken = await animal.speak('loudly')
+
+        expect(shouldRetryOnMock).toHaveBeenCalledTimes(1)
+        expect(shouldRetryOnMock).toHaveBeenCalledWith(new Error("A cockroach doesn't speak, it flies."), { method: 'speak', args: ['loudly'] })
+        expect(spoken).toBe('meow')
+      })
+
+      test('should not retry the methods excluded by shouldRetryOn', async () => {
+        /**
+         * @type {Animal}
+         */
+        const animal = new FailoverProvider({
+          shouldRetryOn: (error, { method }) => method !== 'speak'
+        })
+          .addProvider(new Cockroach())
+          .addProvider(new Cat())
+          .initialize()
+
+        await expect(animal.speak()).rejects.toThrow("A cockroach doesn't speak, it flies.")
       })
     })
   })

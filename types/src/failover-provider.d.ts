@@ -77,9 +77,19 @@ export type FailoverProviderConfig = {
      */
     retries?: number;
     /**
-     * - Define errors that the failover provider should retry. By default, it will retry on any errors.
+     * - Define errors that the failover provider should retry. The context identifies the failed call, so non-idempotent calls can opt out of being replayed on another provider. By default, it will retry on any errors.
      */
-    shouldRetryOn?: (error: unknown) => boolean;
+    shouldRetryOn?: (error: unknown, context: RetryContext) => boolean;
+};
+export type RetryContext = {
+    /**
+     * - The name of the accessed property or called method.
+     */
+    method: string | symbol;
+    /**
+     * - The arguments of the failed call. Undefined when the failure happened while reading the property.
+     */
+    args?: unknown[];
 };
 /**
  * <T>

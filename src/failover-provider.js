@@ -16,7 +16,13 @@
 /**
  * @typedef {Object} FailoverProviderConfig
  * @property {number} [retries] - The number of additional retry attempts after the initial call fails. Total attempts = `1 + retries`. For example, `retries: 3` with 4 providers will try each provider once before throwing. If `retries` exceeds the number of providers, the failover will loop back and retry already-failed providers in round-robin order. Default: 3.
- * @property {(error: unknown) => boolean} [shouldRetryOn] - Define errors that the failover provider should retry. By default, it will retry on any errors.
+ * @property {(error: unknown, context: RetryContext) => boolean} [shouldRetryOn] - Define errors that the failover provider should retry. The context identifies the failed call, so non-idempotent calls can opt out of being replayed on another provider. By default, it will retry on any errors.
+ */
+
+/**
+ * @typedef {Object} RetryContext
+ * @property {string | symbol} method - The name of the accessed property or called method.
+ * @property {unknown[]} [args] - The arguments of the failed call. Undefined when the failure happened while reading the property.
  */
 
 /**
@@ -152,7 +158,7 @@ export default class FailoverProvider {
       prop = Reflect.get(target.provider, p)
       if (typeof prop !== 'function') return prop
     } catch (er) {
-      if (retries <= 0 || !this._shouldRetryOn(er)) throw er
+      if (retries <= 0 || !this._shouldRetryOn(er, { method: p })) throw er
       const provider = this._switch(target)
       return this._proxy(provider, p, retries - 1)
     }
@@ -165,7 +171,7 @@ export default class FailoverProvider {
         re = prop.apply(target.provider, args)
         if (typeof re?.then !== 'function') return re
       } catch (er) {
-        if (retries <= 0 || !this._shouldRetryOn(er)) throw er
+        if (retries <= 0 || !this._shouldRetryOn(er, { method: p, args })) throw er
         const provider = this._switch(target)
         const property = this._proxy(provider, p, retries - 1)
         if (typeof property === 'function') return property(...args)
@@ -176,7 +182,7 @@ export default class FailoverProvider {
       return re
         .then((re) => re)
         .catch((er) => {
-          if (retries <= 0 || !this._shouldRetryOn(er)) throw er
+          if (retries <= 0 || !this._shouldRetryOn(er, { method: p, args })) throw er
           const provider = this._switch(target)
           const property = this._proxy(provider, p, retries - 1)
           if (typeof property === 'function') return property(...args)

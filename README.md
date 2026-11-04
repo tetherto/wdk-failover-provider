@@ -42,7 +42,7 @@ This package exposes a single default export: the `FailoverProvider` factory.
 
 - `new FailoverProvider(config?)` — Create a factory.
   - `config.retries` (number, default `3`): The number of additional retry attempts after the initial call fails. Total attempts = `1 + retries`. For example, `retries: 3` with 4 providers will try each provider once before throwing. If `retries` exceeds the number of providers, the failover will loop back and retry already-failed providers in round-robin order.
-  - `config.shouldRetryOn` (function, default: `error => error instanceof Error`): predicate to determine whether to retry on a given error.
+  - `config.shouldRetryOn` (function, default: `error => error instanceof Error`): predicate to determine whether to retry on a given error. The second argument, `context`, describes the failed call: `context.method` is the property or method name, and `context.args` holds the call arguments (undefined when reading a property failed). Use it to treat non-idempotent calls differently: replay a transaction broadcast only when the error proves the request never reached the provider (for example a refused connection or a 4xx returned before processing), and never on timeouts or on errors returned after the provider may have accepted it, so the original error reaches the caller.
 
 - `instance.addProvider(provider)` — Add a provider candidate. `provider` can be any object (sync or async methods).
 
@@ -51,7 +51,7 @@ This package exposes a single default export: the `FailoverProvider` factory.
 Behavior notes:
 
 - The returned proxied provider forwards non-function properties from the currently active provider.
-- When a method throws exceptions and `shouldRetryOn(error)` returns `true`, the proxy switches to the next provider (round-robin) and retries until retries are exhausted.
+- When a method throws exceptions and `shouldRetryOn(error, context)` returns `true`, the proxy switches to the next provider (round-robin) and retries until retries are exhausted.
 
 ## 📜 License
 
