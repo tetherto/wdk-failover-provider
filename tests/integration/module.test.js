@@ -2,7 +2,7 @@ import FailoverProvider from '@tetherto/wdk-failover-provider'
 
 import { JsonRpcProvider, BrowserProvider, parseEther, Wallet, ZeroAddress } from 'ethers'
 
-import { describe, expect, test } from '@jest/globals'
+import { beforeAll, describe, expect, test } from '@jest/globals'
 
 /**
  * @typedef {import("ethers").AbstractProvider} AbstractProvider
@@ -17,21 +17,27 @@ const window = {
   },
 }
 
-const RPC_PROVIDER = 'https://mainnet.infura.io/v3/06da09cda4da458c9aafe71cf464f5e5'
+const RPC_URL = 'http://127.0.0.1:8545'
+
+const NETWORK = { name: 'mainnet', chainId: 1 }
 
 describe('@tetherto/wdk-failover-provider', () => {
+  beforeAll(async () => {
+    await new JsonRpcProvider(RPC_URL, NETWORK, { staticNetwork: true }).send('hardhat_mine', ['0x1'])
+  })
+
   test('should accept polymorphism', async () => {
     /**
      * @type {AbstractProvider}
      */
     const provider = new FailoverProvider()
       .addProvider(new BrowserProvider(window.ethereum))
-      .addProvider(new JsonRpcProvider(RPC_PROVIDER, { name: 'mainnet', chainId: 1 }))
+      .addProvider(new JsonRpcProvider(RPC_URL, NETWORK))
       .initialize()
 
     const blockNumber = await provider.getBlockNumber()
 
-    expect(blockNumber > 0).toBe(true)
+    expect(blockNumber).toBe(1)
   })
 
   test('should switch provider', async () => {
@@ -41,12 +47,12 @@ describe('@tetherto/wdk-failover-provider', () => {
     const provider = new FailoverProvider()
       .addProvider(new BrowserProvider(window.ethereum))
       .addProvider(new BrowserProvider(window.ethereum))
-      .addProvider(new JsonRpcProvider(RPC_PROVIDER, { name: 'mainnet', chainId: 1 }))
+      .addProvider(new JsonRpcProvider(RPC_URL, NETWORK))
       .initialize()
 
     const blockNumber = await provider.getBlockNumber()
 
-    expect(blockNumber > 0).toBe(true)
+    expect(blockNumber).toBe(1)
   })
 
   describe('shouldRetryOn config', () => {
@@ -56,13 +62,10 @@ describe('@tetherto/wdk-failover-provider', () => {
        */
       const provider = new FailoverProvider({
         shouldRetryOn: (error) => {
-          if (error instanceof Error && 'code' in error) {
-            return error.code !== 'INSUFFICIENT_FUNDS'
-          }
-          return true
+          return !/doesn't have enough funds/.test(error?.error?.message)
         },
       })
-        .addProvider(new JsonRpcProvider(RPC_PROVIDER, { name: 'mainnet', chainId: 1 }))
+        .addProvider(new JsonRpcProvider(RPC_URL, NETWORK))
         .addProvider(new BrowserProvider(window.ethereum))
         .initialize()
 
@@ -73,7 +76,7 @@ describe('@tetherto/wdk-failover-provider', () => {
           to: ZeroAddress,
           value: parseEther('1'),
         })
-      }).rejects.toThrow(/insufficient funds/)
+      }).rejects.toThrow(/Sender doesn't have enough funds to send tx/)
     })
 
     test('should be failed on the default shouldRetryOn', async () => {
@@ -81,7 +84,7 @@ describe('@tetherto/wdk-failover-provider', () => {
        * @type {AbstractProvider}
        */
       const provider = new FailoverProvider({ retries: 1 })
-        .addProvider(new JsonRpcProvider(RPC_PROVIDER, { name: 'mainnet', chainId: 1 }))
+        .addProvider(new JsonRpcProvider(RPC_URL, NETWORK))
         .addProvider(new BrowserProvider(window.ethereum))
         .initialize()
 
@@ -92,7 +95,7 @@ describe('@tetherto/wdk-failover-provider', () => {
           to: ZeroAddress,
           value: parseEther('1'),
         })
-      }).rejects.toThrow(/missing revert data/)
+      }).rejects.toThrow(/Provider disconnected/)
     })
   })
 })

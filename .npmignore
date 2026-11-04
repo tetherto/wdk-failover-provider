@@ -3,3 +3,4 @@ coverage
 tests
 tsconfig.json
 .github
+hardhat.config.js
